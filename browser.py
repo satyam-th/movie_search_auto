@@ -6,7 +6,7 @@ browser = Selenium()
 def search_and_extract_movie(movie_name):
     browser.open_available_browser("https://www.rottentomatoes.com/")
     browser.maximize_browser_window()
-    sleep(2)
+    # sleep(2)
 
     try:
         try:
@@ -16,11 +16,11 @@ def search_and_extract_movie(movie_name):
         except Exception as e:
             print(e)
         browser.click_element("xpath:/html/body/div[3]/rt-header/search-results-nav/search-results-controls/input")
-        sleep(1)
+        # sleep(1)
 
         browser.input_text("xpath:/html/body/div[3]/rt-header/search-results-nav/search-results-controls/input", movie_name)
         browser.press_keys("xpath:/html/body/div[3]/rt-header/search-results-nav/search-results-controls/input", "ENTER")
-        sleep(2)
+        # sleep(2)
 
     except Exception as e:
         print("Search error:", e)
@@ -31,7 +31,7 @@ def search_and_extract_movie(movie_name):
         return {"movie_name": movie_name, "status": "No match"}
 
     browser.go_to(movie_url)
-    sleep(3)
+    # sleep(3)
 
     data = extract_movie_details()
     data["movie_name"] = movie_name
@@ -41,7 +41,7 @@ def search_and_extract_movie(movie_name):
 
 
 def find_exact_match(movie_name):
-    sleep(2)
+    # sleep(2)
     browser.click_element_if_visible("xpath://div[@id='search-results']/nav[@class='search__nav']/ul[@class='searchNav__filters']/li[@class='js-search-filter searchNav__filter'][1]")
     results = browser.find_elements("xpath://search-page-media-row")
    
@@ -68,37 +68,41 @@ def extract_movie_details():
     movie_data = {}
 
     browser.wait_until_element_is_visible("xpath:/html/body")
+    test = 1
 
-    try:
-        t = browser.find_element('xpath://*[@id="modules-wrap"]/div[1]/media-scorecard/rt-text[1]').text
-        movie_data["tomatometer_score"] = t
-    except:
-        movie_data["tomatometer_score"] = "N/A"
+    while True:
+        try:
+            browser.find_element( f'xpath://*[@id="modules-wrap"]/div[{test}]/section/div[2]/dl/div')
+            print("data found")
+            break
+        except:
+            print(f"testing {test}")
+            test = 1 + test
+            # print(f"testing {test}")
+            continue
+    data = browser.find_elements(f'xpath://*[@id="modules-wrap"]/div[{test}]/section/div[2]/dl/div')
+    print(f"number of data are {len(data)} and num {test}")
+    i = 1
+    for a in data:
+        try:
+            name_xpath = f'xpath://*[@id="modules-wrap"]//section/div[2]/dl/div[{i}]/dt/rt-text'
+            detail_xpath = f'xpath://*[@id="modules-wrap"]/div[{test}]/section/div[2]/dl/div[{i}]/dd'
 
-    try:
-        a = browser.find_element('xpath://*[@id="modules-wrap"]/div[1]/media-scorecard/rt-text[3]').text
-        movie_data["audience_score"] = a
-    except:
-        movie_data["audience_score"] = "N/A"
-    browser.scroll_element_into_view('xpath://*[@id="modules-wrap"]/div[10]/section')
-    try:
-        storyline = browser.find_element('xpath://*[@id="modules-wrap"]/div[10]/section/div[2]/div/rt-text[2]').text
-        movie_data["storyline"] = storyline
-    except:
-        movie_data["storyline"] = "N/A"
+            data_name = browser.find_element(name_xpath).text
+            data_detail = browser.find_element(detail_xpath).text
 
-    try:
-        genres = browser.find_elements('xpath://*[@id="modules-wrap"]/div[10]/section/div[2]/dl/div[7]/dd')
-        movie_data["genres"] = ", ".join([g.text for g in genres])
-    except:
-        movie_data["genres"] = "N/A"
+            movie_data[data_name] = data_detail
+        except Exception as e:
+            print(f"Skipping block {i}: {e}")
+            continue
+        i = 1 + i
+    clean_data = {key: clean_text(value) for key, value in movie_data.items()}
+    print(f'this is movie type{clean_data}')
 
-    try:
-        Release_Date = browser.find_element('xpath://*[@id="modules-wrap"]/div[10]/section/div[2]/dl/div[9]/dd/rt-text//span').text
-        movie_data["Release Date"] = Release_Date
-    except:
-        movie_data["Release Date"] = "N/A"
-    
-    print(f'this is movie type{movie_data}')
-
-    return movie_data
+    return clean_data
+def clean_text(text):
+    # Remove repeated newlines/spaces and normalize commas
+    text = text.replace("\n", " ").replace("  ", " ")      # collapse newlines + double spaces
+    text = text.replace(" ,", ",")                         # remove space before comma
+    text = " ".join(text.split())                          # normalize all whitespace
+    return text

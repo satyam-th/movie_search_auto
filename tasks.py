@@ -5,8 +5,6 @@ from excel import process_excel_file
 from database import get_database_name, create_database_if_not_exists, insert_movie_data
 from browser import search_and_extract_movie, browser
 
-2
-
 @task
 def task():
     input_data = asking_user()
